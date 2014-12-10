@@ -3,6 +3,7 @@
 
 import os
 import os.path
+import re
 from subprocess import Popen, PIPE, call
 
 DOCUMENTATION = '''
@@ -46,10 +47,15 @@ def fix_case(name):
     Passing through this function makes them uniform for comparisons."""
     return name.replace(".utf8", ".UTF-8")
 
-def replace_line(existing_line, new_line):
-    """Replaces lines in /etc/locale.gen"""
+def set_locale(name, encoding, enabled=True):
+    """ Sets the state of the locale. Defaults to enabled. """
+    search_string = '(#+\s*){0,1}%s %s' % (name, encoding)
+    if enabled:
+        new_string = '%s %s' % (name, encoding)
+    else:
+        new_string = '# %s %s' % (name, encoding)
     with open("/etc/locale.gen", "r") as f:
-        lines = [line.replace(existing_line, new_line) for line in f]
+        lines = [re.sub(search_string, new_string, line) for line in f]
     with open("/etc/locale.gen", "w") as f:
         f.write("".join(lines))
 
@@ -61,12 +67,13 @@ def apply_change(targetState, name, encoding):
     name -- Name including encoding such as de_CH.UTF-8.
     encoding -- Encoding such as UTF-8.
     """
+
     if targetState=="present":
         # Create locale.
-        replace_line("# "+name+" "+encoding, name+" "+encoding)
+        set_locale(name, encoding, enabled=True)
     else:
         # Delete locale.
-        replace_line(name+" "+encoding, "# "+name+" "+encoding)
+        set_locale(name, encoding, enabled=False)
     
     localeGenExitValue = call("locale-gen")
     if localeGenExitValue!=0:
