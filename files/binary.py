@@ -4,7 +4,10 @@ import os
 import shutil
 import tempfile
 import base64
-import hashlib
+try:
+    from hashlib import sha1
+except ImportError:
+    from sha import sha as sha1
 
 from ansible.module_utils.basic import *
 
@@ -64,8 +67,8 @@ class Binary(object):
 
         # Now we need to compare the generated file with the existing file
         try:
-            existing_hash = hashlib.sha224(open(dest).read()).hexdigest()
-            new_hash = hashlib.sha224(open(d_tmp_file_name).read()).hexdigest()
+            existing_hash = sha1(open(dest).read()).hexdigest()
+            new_hash = sha1(open(d_tmp_file_name).read()).hexdigest()
             
             if new_hash == existing_hash:
                 # The hashes match. No changes are necessary.
